@@ -1,5 +1,5 @@
 function love.conf(t)
-    t.title = "Template"
+    t.title = "Follow"
     t.version = "11.4"
     t.window.width = 1400
     t.window.minwidth = 400

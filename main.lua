@@ -4,6 +4,8 @@ function loadModules()
     utils = require("src.utils.utils")
     
     -- Load managers
+    databaseClass = require("src.database")
+    db = DB()
     orchestratorClass = require("src.orchestrator")
     rendererClass = require("src.renderer")
     inputSystemClass = require("src.sys.inputSystem")

@@ -9,11 +9,11 @@ function InputSystem:new()
 end
 
 function InputSystem:keyPressed(key)
-    print(key)
+    -- print(key)
 end
 
 function InputSystem:mousePressed(x, y, button, istouch)
-    print(x, y, button, istouch)
+    -- print(x, y, button, istouch)
 end
 
 function InputSystem:mouseReleased()
