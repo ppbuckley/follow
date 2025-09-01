@@ -5,7 +5,7 @@ eventSystemClass = require("src.sys.eventSystem")
 Orchestrator = Object:extend()
 
 function Orchestrator:new()
-    self.events = Signal()
+    self.events = EventSystem()
     self.window = WindowSystem.fromWindow(db.window.width, db.window.height)
 end
 
