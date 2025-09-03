@@ -1,6 +1,30 @@
 utils = {}
 
 function utils.toRGB(r, g, b, a)
+    -- Handle hex code input
+    if type(r) == "string" then
+        local hex = r:gsub("#", "")
+        
+        -- Handle 3-digit hex (#RGB)
+        if #hex == 3 then
+            hex = hex:sub(1,1):rep(2) .. hex:sub(2,2):rep(2) .. hex:sub(3,3):rep(2)
+        end
+        
+        -- Handle 6-digit hex (#RRGGBB) or 8-digit hex (#RRGGBBAA)
+        if #hex == 6 or #hex == 8 then
+            r = tonumber(hex:sub(1, 2), 16)
+            g = tonumber(hex:sub(3, 4), 16)
+            b = tonumber(hex:sub(5, 6), 16)
+            a = 255 -- g is second param if provided
+            -- a = #hex == 8 and tonumber(hex:sub(7, 8), 16) or (g or 255) -- g is second param if provided
+        else
+            error("Invalid hex color: " .. r)
+        end
+    end
+    
+    -- Default alpha to 255 if not provided
+    a = a or 255
+    
     return {
         r / 255,
         g / 255,
@@ -519,23 +543,28 @@ function utils.between(v, a, b)
     return (a < v) and (b > v)
 end
 
-function utils.pointInsideBox(point, box)
-    local isBetweenX = point.x > box.topLeft.x and point.x < box.bottomRight.x
-    local isBetweenY = point.y > box.topLeft.y and point.y < box.bottomRight.y
+function utils.pointInsideBox(point, bounds)
+    local isBetweenX = point.x > bounds.x1 and point.x < bounds.x2
+    local isBetweenY = point.y > bounds.y1 and point.y < bounds.y2
 
     return isBetweenX and isBetweenY
 end
 
-function utils.expandBox(box, distance)
+function utils.expandBounds(bounds, distance)
     return {
-        topLeft = {
-            x = box.topLeft.x - distance,
-            y = box.topLeft.y - distance,
-        },
-        bottomRight = {
-            x = box.bottomRight.x + distance,
-            y = box.bottomRight.y + distance,
-        }
+        x1 = bounds.x1 - distance,
+        y1 = bounds.y1 - distance,
+        x2 = bounds.x2 + distance,
+        y2 = bounds.y2 + distance,
+    }
+end
+
+function utils.shiftBounds(bounds, vector)
+    return {
+        x1 = bounds.x1 + vector.x,
+        y1 = bounds.y1 + vector.y,
+        x2 = bounds.x2 + vector.x,
+        y2 = bounds.y2 + vector.y,
     }
 end
 
@@ -851,6 +880,47 @@ function utils.weightedMedian(weightTable)
     -- Shouldn't reach here, but return last value as fallback
     return items[#items].value
 end
+
+function arange(start, stop, step)
+    -- Handle different argument patterns like numpy
+    if stop == nil then
+        -- arange(stop) -> arange(0, stop, 1)
+        stop = start
+        start = 0
+        step = 1
+    elseif step == nil then
+        -- arange(start, stop) -> arange(start, stop, 1)
+        step = 1
+    end
+    
+    -- Validate step
+    if step == 0 then
+        error("Step cannot be zero")
+    end
+    
+    local result = {}
+    local i = 1
+    local current = start
+    
+    -- Handle both positive and negative steps
+    if step > 0 then
+        while current < stop do
+            result[i] = current
+            current = current + step
+            i = i + 1
+        end
+    else
+        while current > stop do
+            result[i] = current
+            current = current + step
+            i = i + 1
+        end
+    end
+    
+    return result
+end
+
+table.arange = arange;
 
 return utils
 

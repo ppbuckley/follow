@@ -8,7 +8,7 @@ function WindowSystem:new()
 end
 
 function WindowSystem:checkImplementation()
-    if self.class == Orientation then
+    if self.class == WindowSystem then
         error("Cannot use Orientation directly, use Vertical or Horizontal")
     end
 end
@@ -50,38 +50,46 @@ end
 
 function Portrait:getBoxLength(width, height)
     local ratio = width/height
-    return (width - db.window.border * math.pow(ratio, 2)) * 0.5
+    return width - db:get('settings', 'border', 250) * math.pow(ratio, 2)
 end
 
-function Portrait:getLevelData()
-    local width = orchestrator.window:getBoxLength(db.window.width, db.window.height) * 2
-    local height = 55
+function Portrait:getPanelsBounds(width, height)
+    local ratio = height/width
+    local gameSize = height - db:get('settings', 'border', 250) * math.pow(ratio, 3)
 
-    local data = {
-        x = (db.window.width - width) * 0.5, 
-        y = math.min((db.window.width - width) * 0.5, (db.window.height - width) * 0.25 - height * 0.5),
-        width = width, 
-        height = height,
-        widthMultiplier = 1,
-        heightMultiplier = 0,
-        widthDivisor = #orchestrator.tracking.level.boxColors * db.game.level,
-        heightDivisor = 1,
-        notchWidth = 3,
-        notchHeight = height,
-        corners = height * 0.2,
-        segments = {}
+    -- x1 = (width - gameSize) * 0.5,
+    -- y1 = (height - gameSize) * 0.5,
+    -- x2 = (width + gameSize) * 0.5,
+    -- y2 = (height + gameSize) * 0.5
+
+    local panels = {
+        firstPrimary = {
+            x1 = 0,
+            y1 = 0,
+            x2 = (width - gameSize) * 0.5,
+            y2 = height
+        },
+        secondPrimary = {
+            x1 = (width + gameSize) * 0.5,
+            y1 = 0,
+            x2 = width,
+            y2 = height
+        },
+        firstSecondary = {
+            x1 = (width - gameSize) * 0.5,
+            y1 = 0,
+            x2 = (width + gameSize) * 0.5,
+            y2 = (height - gameSize) * 0.5
+        },
+        secondSecondary = {
+            x1 = (width - gameSize) * 0.5,
+            y1 = (height + gameSize) * 0.5,
+            x2 = (width + gameSize) * 0.5,
+            y2 = height
+        }
     }
 
-    for index, color in ipairs(orchestrator.tracking.level.boxColors) do
-        for level = 1, db.game.level, 1 do
-            table.insert(data.segments, {
-                color = color,
-                segNum = (index - 1) * db.game.level + level
-            })
-        end
-    end
-
-    return data
+    return panels
 end
 
 -- Landscape subclass
@@ -95,38 +103,41 @@ end
 
 function Landscape:getBoxLength(width, height)
     local ratio = height/width
-    return (height - db.window.border * math.pow(ratio, 3)) * 0.5 - db.game.font.size
+    return height - db:get('settings', 'border', 250) * math.pow(ratio, 3)
 end
 
-function Landscape:getLevelData()
-    local width = 55
-    local height = orchestrator.window:getBoxLength(db.window.width, db.window.height) * 2
+function Landscape:getPanelsBounds(width, height)
+    local ratio = height/width
+    local gameSize = height - db:get('settings', 'border', 250) * math.pow(ratio, 3)
 
-    local data = {
-        x = math.min((db.window.height - height) * 0.5, (db.window.width - height) * 0.25 - width * 0.5),
-        y = (db.window.height - height) * 0.5, 
-        width = width, 
-        height = height,
-        widthMultiplier = 0,
-        heightMultiplier = 1,
-        widthDivisor = 1,
-        heightDivisor = #orchestrator.tracking.level.boxColors * db.game.level,
-        notchWidth = width,
-        notchHeight = 3,
-        corners = width * 0.2,
-        segments = {}
+    local panels = {
+        firstPrimary = {
+            x1 = 0,
+            y1 = 0,
+            x2 = (width - gameSize) * 0.5,
+            y2 = height
+        },
+        secondPrimary = {
+            x1 = (width + gameSize) * 0.5,
+            y1 = 0,
+            x2 = width,
+            y2 = height
+        },
+        firstSecondary = {
+            x1 = (width - gameSize) * 0.5,
+            y1 = 0,
+            x2 = (width + gameSize) * 0.5,
+            y2 = (height - gameSize) * 0.5
+        },
+        secondSecondary = {
+            x1 = (width - gameSize) * 0.5,
+            y1 = (height + gameSize) * 0.5,
+            x2 = (width + gameSize) * 0.5,
+            y2 = height
+        }
     }
 
-    for index, color in ipairs(orchestrator.tracking.level.boxColors) do
-        for level = 1, db.game.level, 1 do
-            table.insert(data.segments, {
-                color = color,
-                segNum = (index - 1) * db.game.level + level
-            })
-        end
-    end
-
-    return data
+    return panels
 end
 
 -- Static factory methods

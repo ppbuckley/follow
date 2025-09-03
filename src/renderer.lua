@@ -5,23 +5,17 @@ Renderer = Object:extend()
 
 
 function Renderer:new()
+    self.layerOrder = {"background", "default", "ui"}
+    self.layers = {}
+
     self:updateFont()
+    self:clear()
+
     self.shaders = Shaders()
-    self.layers = {
-        default = {
-            draw = {}
-        },
-        ui = {
-            draw = {}
-        }
-    }
-
-    self.layerOrder = {"default", "ui"}
-
 end
 
 function Renderer:updateFont()
-    self.font = love.graphics.newFont(db.game.font.size)
+    self.font = love.graphics.newFont(db:get('settings', 'fontSize', 24))
     love.graphics.setFont(self.font)
 end
 
@@ -39,22 +33,147 @@ function Renderer:render()
     self:clear()
     
     -- print(love.timer.getFPS())
+
 end
 
 function Renderer:build()
-    self:add("ui", 1, function()
-        love.graphics.setColor(1, 1, 0, 1)
-        love.graphics.circle("fill", db.window.halfWidth, db.window.halfHeight, 100)
+    self:drawBackground()
+    self:drawGameWindow()
+    self:drawDebugTool()
+    self:drawPanels()
+end
+
+
+function Renderer:drawBackground()
+    self:add("background", 0, function()
+        love.graphics.setColor(utils.lerpColour(utils.toRGB("#AD9585")))
+        love.graphics.rectangle(
+            "fill",
+            0,
+            0,
+            db:get('display', 'width'),
+            db:get('display', 'height')
+        )
+    end)
+end
+
+function Renderer:drawGameWindow()
+    local lineWidth = db:get('display', 'lineWidthDefault')
+
+    local gameBounds = db.components.bounds[db:get('display', 'gameBounds', 0)]
+
+    -- Game window outline
+    self:add("default", 2, function()
+        love.graphics.setColor(utils.toRGB("#BDAA9D"))
+        love.graphics.setLineWidth(db:get('display', 'lineWidthDefault'))
+        
+        love.graphics.rectangle(
+            "line",
+            gameBounds.x1,
+            gameBounds.y1,
+            gameBounds.x2 - gameBounds.x1,
+            gameBounds.y2 - gameBounds.y1
+        )
     end)
     
-    self:add(nil, 1, function()
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.circle("fill", db.window.halfWidth, db.window.halfHeight, 200)
+    -- Game window background
+    self:add("default", 0, function()
+        love.graphics.setColor(utils.toRGB("#CABBB1"))
+        
+        love.graphics.rectangle(
+            "fill",
+            gameBounds.x1,
+            gameBounds.y1,
+            gameBounds.x2 - gameBounds.x1,
+            gameBounds.y2 - gameBounds.y1
+        )
     end)
     
-    self:add("ui", 0, function()
-        love.graphics.setColor(0, 1, 1, 1)
-        love.graphics.circle("fill", db.window.halfWidth, db.window.halfHeight, 150)
+    self:add("default", 1, function()
+        local coords, size = orchestrator.grid:getCoords(), db.components.size[orchestrator.grid.id]
+        for _, coord in pairs(coords) do
+            local x, y = unpack(coord)
+            local cellWidth = (gameBounds.x2 - gameBounds.x1) / size
+            local cellHeight = (gameBounds.y2 - gameBounds.y1) / size
+
+            love.graphics.setLineWidth(lineWidth)
+            local value = db.components.t[orchestrator.input.Notch_Size]
+        
+            love.graphics.stencil(function()
+                love.graphics.setColor(1, 1, 1, 1)
+                love.graphics.rectangle(
+                    "fill",
+                    x * cellWidth + cellWidth * (1 - value) * 0.5 + gameBounds.x1,
+                    y * cellHeight + gameBounds.y1 - lineWidth,
+                    cellWidth * value,
+                    cellHeight + lineWidth * 2
+                )
+                love.graphics.rectangle(
+                    "fill",
+                    x * cellWidth + gameBounds.x1 - lineWidth,
+                    y * cellHeight + cellHeight * (1 - value) * 0.5 + gameBounds.y1,
+                    cellWidth + lineWidth * 2,
+                    cellHeight * value
+                )
+                end,
+                "replace",
+                1
+            )
+            love.graphics.setStencilTest("notequal", 1)
+            
+
+            love.graphics.setColor(utils.toRGB("#BDAA9D"))
+            love.graphics.rectangle(
+                "line",
+                x * cellWidth + gameBounds.x1,
+                y * cellHeight + gameBounds.y1,
+                cellWidth,
+                cellHeight
+            )
+
+            love.graphics.setStencilTest()
+        end
+    end)
+end
+
+function Renderer:drawDebugTool()
+    if not orchestrator.ui.enabled then return end
+
+    self:add("ui", 11, function ()
+        local secondPrimaryPanelBounds = table.copy(db.components.bounds[db:get('display', 'panels').secondPrimary])
+        secondPrimaryPanelBounds.y2 = secondPrimaryPanelBounds.y1 + (secondPrimaryPanelBounds.y2 - secondPrimaryPanelBounds.y1) * 0.5
+
+        drawBox(utils.expandBounds(secondPrimaryPanelBounds, -10), "fill", utils.toRGB("#CABBB1"))
+        drawBox(utils.expandBounds(secondPrimaryPanelBounds, -10), "line", {1, 1, 1, 1})
+    end)
+
+    self:add("ui", 12, function ()
+        local controls = db:getQuery("uiControls")
+
+        for control in pairs(controls) do
+            local uiComponent = db.components.uiComponent[control]
+
+            if uiComponent == "slider" then
+                drawSlider(control)
+            elseif uiComponent == "toggle" then
+                drawToggle(control)
+            end
+        end
+    end)
+end
+
+function Renderer:drawPanels()
+    local value = db.components.t[orchestrator.input.Show_Panels]
+
+    if value == 0 then return end
+
+    self:add("ui", 10, function ()
+        panels = db:get('display', 'panels')
+
+        drawBox(utils.expandBounds(db.components.bounds[panels.firstPrimary], -db:get('display', 'lineWidthDefault') * 0.5), "line", {1, 0, 0, 1})
+        drawBox(utils.expandBounds(db.components.bounds[panels.secondPrimary], -db:get('display', 'lineWidthDefault') * 0.5), "line", {1, 0, 0, 1})
+        drawBox(utils.expandBounds(db.components.bounds[panels.firstSecondary], -db:get('display', 'lineWidthDefault') * 0.5), "line", {0, 0, 1, 1})
+        drawBox(utils.expandBounds(db.components.bounds[panels.secondSecondary], -db:get('display', 'lineWidthDefault') * 0.5), "line", {0, 0, 1, 1})
     end)
 end
 
@@ -69,12 +188,132 @@ function Renderer:draw()
 end
 
 function Renderer:clear()
-    self.layers = {
-        default = {
-            draw = {}
-        },
-        ui = {
-            draw = {}
-        }
-    }
+    for _, layerName in pairs(self.layerOrder) do 
+        self.layers[layerName] = {draw = {}}
+    end
+end
+
+function drawBox(bounds, mode, color)
+    love.graphics.setColor(color)
+    love.graphics.rectangle(
+        mode,
+        bounds.x1,
+        bounds.y1,
+        bounds.x2 - bounds.x1,
+        bounds.y2 - bounds.y1
+    )
+end
+function drawCircle(bounds, mode, color)
+    love.graphics.setColor(color)
+    love.graphics.circle(
+        mode,
+        bounds.x1 + (bounds.x2 - bounds.x1) * 0.5,
+        bounds.y1 + (bounds.x2 - bounds.x1) * 0.5,
+        (bounds.x2 - bounds.x1) * 0.5
+    )
+end
+
+function drawLine(line, color)
+    love.graphics.setColor(color)
+    love.graphics.line(
+        line.x1,
+        line.y1,
+        line.x2,
+        line.y2
+    )
+end
+
+function drawSlider(control)
+    local bounds = db.components.bounds[control]
+    local clickBounds = db.components.clickBounds[control]
+    local line = db.components.line[control]
+    local t = db.components.t[control]
+    local label = db.components.name[control]
+
+    if line then 
+        love.graphics.setLineWidth(2)
+        drawLine(
+            line,
+            utils.toRGB("#997B66")
+        )
+    end
+    if clickBounds and t then
+        drawCircle(
+            clickBounds,
+            "fill", 
+            utils.lerpColour(utils.toRGB("#CABBB1"), utils.toRGB("#997B66"), t)
+        )
+        love.graphics.setLineWidth(2)
+        drawCircle(
+            clickBounds,
+            "line", 
+            utils.toRGB("#997B66")
+        )
+        if label then 
+            love.graphics.setColor(utils.toRGB("#997B66"))
+            love.graphics.printf(label, bounds.x1, line.y1 + 4, (bounds.x2 - bounds.x1), "center")
+        end
+    end
+end
+
+function drawToggle(control)
+    local bounds = db.components.bounds[control]
+    local clickBounds = db.components.clickBounds[control]
+    local t = db.components.t[control]
+    local label = db.components.name[control]
+
+    local offBounds = utils.expandBounds(UISystem.getToggleClickBounds(bounds, 0), 5)
+    local onBounds = utils.expandBounds(UISystem.getToggleClickBounds(bounds, 1), 5)
+
+    if clickBounds and t then
+        love.graphics.stencil(function ()
+            love.graphics.rectangle(
+                "fill",
+                (offBounds.x2 + offBounds.x1) * 0.5,
+                offBounds.y1 + 1,
+                onBounds.x1 - offBounds.x1,
+                offBounds.y2 - offBounds.y1 - 2
+            )
+        end)
+
+        love.graphics.setStencilTest("notequal", 1)
+
+        love.graphics.setLineWidth(2)
+        love.graphics.setColor(utils.toRGB("#997B66"))
+        love.graphics.rectangle(
+                "fill",
+                (offBounds.x2 + offBounds.x1) * 0.5,
+                offBounds.y1 - 1,
+                onBounds.x1 - offBounds.x1,
+                offBounds.y2 - offBounds.y1 + 2
+            )
+        drawCircle(
+            offBounds,
+            "line",
+            utils.toRGB("#997B66")
+        )
+        drawCircle(
+            onBounds,
+            "line",
+            utils.toRGB("#997B66")
+        )
+
+        love.graphics.setStencilTest()
+
+        drawCircle(
+            clickBounds,
+            "fill", 
+            utils.lerpColour(utils.toRGB("#CABBB1"), utils.toRGB("#997B66"), t)
+        )
+        love.graphics.setLineWidth(2)
+        drawCircle(
+            clickBounds,
+            "line", 
+            utils.toRGB("#997B66")
+        )
+        if label then 
+            love.graphics.setColor(utils.toRGB("#997B66"))
+            love.graphics.printf(label, bounds.x1, (bounds.y1 + bounds.y2 - love.graphics.getFont():getHeight()) * 0.5, (bounds.x2 - bounds.x1) * 0.9, "right")
+        end
+    end
 end

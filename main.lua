@@ -16,8 +16,8 @@ function love.load()
     loadModules()
     
     -- Instantiate systems
-    orchestrator = Orchestrator()
     renderer = Renderer()
+    orchestrator = Orchestrator()
     sysInput = InputSystem()
 end
 
@@ -40,5 +40,5 @@ function love.mousepressed(x, y, button, istouch)
 end
 
 function love.resize()
-    orchestrator:refresh()
+    orchestrator:resize()
 end
