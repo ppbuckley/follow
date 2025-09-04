@@ -16,9 +16,18 @@ function Orchestrator:setup()
     self.grid = GridSystem(db:get('game', 'gridSize', 6))
     self.input = {}
 
+    local cells = lume.concat(table.arange(1, 4), table.arange(4 + db.components.size[self.grid.id] - 1, 4 + db.components.size[self.grid.id] + 4))
+
+    self.line = db:createEntity({
+        cells = cells,
+        points = self.grid:lineToVertices(cells)
+    })
+    
     self:registerQueries()
-    self:updateSettings()    
+    self:updateSettings()
     self:connectHandlers()
+
+
 end
 
 function Orchestrator:registerQueries()
@@ -58,8 +67,10 @@ end
 
 function Orchestrator:updateDebugTool()
     self.ui:clear(self)
-    self.ui:add(UISystem.Slider, "Notch Size", self)
-    self.ui:add(UISystem.Toggle, "Show Panels", self)
+    self.ui:add(UISystem.Slider, "Notch Size", self, 0.6)
+    self.ui:add(UISystem.Toggle, "Show Panels", self, 0)
+    self.ui:add(UISystem.Toggle, "Show Coords", self, 0)
+    self.ui:add(UISystem.Toggle, "Show Cell IDs", self, 0)
 end
 
 function Orchestrator:updateGameWindow(width, height, gameSize) 
@@ -96,7 +107,42 @@ function Orchestrator:connectHandlers()
     self.events.onWindowResize:connect(self.events.bind(db, db.updateDisplay))
     self.events.onWindowResize:connect(self.events.bind(self, self.updateSettings))
     self.events.onMousePressed:connect(self.events.bind(self, self.doThing))
+    self.events.onKeyPressed:connect(self.events.bind(self, self.moveActivePoint))
     -- self.events.onMouseReleased:connect(self.events.bind(self, self.doThing))
+end
+
+function Orchestrator:moveActivePoint(key)
+    local size = db.components.size[orchestrator.grid.id]
+    local dirs = {}
+    dirs["right"] = 1
+    dirs["left"] = -1
+    dirs["down"] = size
+    dirs["up"] = -size
+    dirs["backspace"] = true
+    dirs["delete"] = true
+
+    local dir = dirs[key]
+
+    if not dir then
+        return
+    else
+        local cells = db.components.cells[self.line]
+        if key == "backspace" or key == "delete" then
+            table.remove(cells, #cells)
+        else
+            local lastCell = cells[#cells]
+            local noRight = dir == 1 and lastCell % size == 11
+            local noLeft = dir == -1 and lastCell % size == 0
+            local noUp = lastCell + dir < 0
+            local noDown = lastCell + dir > math.pow(size, 2) - 1
+
+            -- Moving point shouldn't go beyond game bounds. Assumes square bounds
+            if noRight or noLeft or noUp or noDown then return end
+
+            table.insert(cells, lastCell + dir)
+        end
+        db.components.points[self.line] = self.grid:lineToVertices(cells)
+    end
 end
 
 function Orchestrator:getBoxBounds(width, height)

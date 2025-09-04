@@ -11,12 +11,11 @@ function UISystem:toggleDebugTool()
     self.enabled = not self.enabled
 end
 
-function UISystem.Slider(name, bounds)
-    return UISystem:createSlider(name, bounds)
+function UISystem.Slider(name, bounds, defaultValue)
+    return UISystem:createSlider(name, bounds, defaultValue)
 end
 
-function UISystem:createSlider(name, bounds)
-    local defaultValue = 0
+function UISystem:createSlider(name, bounds, defaultValue)
 
     local ydist = bounds.y2 - bounds.y1
     local ybar = (bounds.y1 + bounds.y2) * 0.5
@@ -52,13 +51,11 @@ function UISystem:createSlider(name, bounds)
     return slider
 end
 
-function UISystem.Toggle(name, bounds)
-    return UISystem:createToggle(name, bounds)
+function UISystem.Toggle(name, bounds, defaultValue)
+    return UISystem:createToggle(name, bounds, defaultValue)
 end
 
-function UISystem:createToggle(name, bounds)
-    local defaultValue = 0
-
+function UISystem:createToggle(name, bounds, defaultValue)
     local ydist = bounds.y2 - bounds.y1
     local ybar = (bounds.y1 + bounds.y2) * 0.5
 
@@ -96,9 +93,9 @@ function UISystem:clear(orch)
     end
 end
 
-function UISystem:add(uiComponent, name, orch)
+function UISystem:add(uiComponent, name, orch, defaultValue)
     local bounds = self:getNextBounds()
-    local component = uiComponent(string.gsub(name, ' ', '_'), bounds)
+    local component = uiComponent(string.gsub(name, ' ', '_'), bounds, defaultValue)
 
     orch.input[string.gsub(name, ' ', '_')] = component
 

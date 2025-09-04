@@ -40,6 +40,7 @@ end
 EventSystem = Object:extend()
 
 function EventSystem:new()
+    self.onKeyPressed = Signal()
     self.onMousePressed = Signal()
     self.onMouseReleased = Signal()
     self.onWindowResize = Signal()
