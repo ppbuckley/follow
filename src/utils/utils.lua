@@ -922,5 +922,15 @@ end
 
 table.arange = arange;
 
+function add(tbl, constant)
+   local result = {}
+   for i, v in ipairs(tbl) do
+       result[i] = v + constant
+   end
+   return result
+end
+
+table.add = add
+
 return utils
 

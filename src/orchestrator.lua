@@ -1,42 +1,35 @@
 Object = require("src.utils.classic")
 windowSystemClass = require("src.sys.windowSystem")
-eventSystemClass = require("src.sys.eventSystem")
+eventSystemClass = require("src.sys.eventsystem")
 gridSystemClass = require("src.sys.gridSystem")
 UISystemClass = require("src.sys.uiSystem")
 
 Orchestrator = Object:extend()
 
 function Orchestrator:new()
-    self.ui = UISystem()
     self:setup()
 end
 
 function Orchestrator:setup()
-    self.events = EventSystem()
-    self.grid = GridSystem(db:get('game', 'gridSize', 6))
-    self.input = {}
-
-    local cells = lume.concat(table.arange(1, 4), table.arange(4 + db.components.size[self.grid.id] - 1, 4 + db.components.size[self.grid.id] + 4))
-
-    self.line = db:createEntity({
-        cells = cells,
-        points = self.grid:lineToVertices(cells)
-    })
+    self.ui = UISystem()
+    self.sysEvents = EventSystem()
     
     self:registerQueries()
     self:updateSettings()
     self:connectHandlers()
-
-
+    
+    self.sysGrid = GridSystem(db:get('game', 'gridSize', 6))
+    self.sysPlayer = PlayerSystem(self.sysGrid)
 end
 
 function Orchestrator:registerQueries()
     db:registerQuery('clickable', {'clickHandler', 'clickBounds'})
+    db:registerQuery('cells', {'cellNum', 'coord', 'clickBounds', 'clickHandler', 'statusHandler'})
     db:registerQuery('uiControls', {'clickHandler', 'clickBounds', 'uiComponent'})
 end
 
 function Orchestrator:resize()
-    self.events.onWindowResize:emit()
+    self.sysEvents.onWindowResize:emit()
 end
 
 function Orchestrator:updateSettings()
@@ -66,11 +59,12 @@ function Orchestrator:updateLayout(width, height)
 end
 
 function Orchestrator:updateDebugTool()
-    self.ui:clear(self)
-    self.ui:add(UISystem.Slider, "Notch Size", self, 0.6)
-    self.ui:add(UISystem.Toggle, "Show Panels", self, 0)
-    self.ui:add(UISystem.Toggle, "Show Coords", self, 0)
-    self.ui:add(UISystem.Toggle, "Show Cell IDs", self, 0)
+    self.ui:clear(sysInput)
+    self.ui:add(UISystem.Slider, "Notch Size", 0.6)
+    self.ui:add(UISystem.Toggle, "Show Panels", 0)
+    self.ui:add(UISystem.Toggle, "Show Coords", 0)
+    self.ui:add(UISystem.Toggle, "Show Cell IDs", 0)
+    self.ui:add(UISystem.Toggle, "Show Line Bounds", 0)
 end
 
 function Orchestrator:updateGameWindow(width, height, gameSize) 
@@ -83,7 +77,6 @@ function Orchestrator:updateGameWindow(width, height, gameSize)
         }
     }))
 end
-
 
 function Orchestrator:updatePanels(panelsBounds) 
     db:set('display', 'panels', {
@@ -104,45 +97,15 @@ function Orchestrator:updatePanels(panelsBounds)
 end
 
 function Orchestrator:connectHandlers() 
-    self.events.onWindowResize:connect(self.events.bind(db, db.updateDisplay))
-    self.events.onWindowResize:connect(self.events.bind(self, self.updateSettings))
-    self.events.onMousePressed:connect(self.events.bind(self, self.doThing))
-    self.events.onKeyPressed:connect(self.events.bind(self, self.moveActivePoint))
-    -- self.events.onMouseReleased:connect(self.events.bind(self, self.doThing))
+    self.sysEvents.onWindowResize:connect(self.sysEvents.bind(db, db.updateDisplay))
+    self.sysEvents.onWindowResize:connect(self.sysEvents.bind(self, self.updateSettings))
+    self.sysEvents.onMousePressed:connect(self.sysEvents.bind(self, self.doThing))
+    self.sysEvents.onKeyPressed:connect(self.sysEvents.bind(self, self.onKeyPressed))
+    -- self.sysEvents.onMouseReleased:connect(self.sysEvents.bind(self, self.doThing))
 end
 
-function Orchestrator:moveActivePoint(key)
-    local size = db.components.size[orchestrator.grid.id]
-    local dirs = {}
-    dirs["right"] = 1
-    dirs["left"] = -1
-    dirs["down"] = size
-    dirs["up"] = -size
-    dirs["backspace"] = true
-    dirs["delete"] = true
-
-    local dir = dirs[key]
-
-    if not dir then
-        return
-    else
-        local cells = db.components.cells[self.line]
-        if key == "backspace" or key == "delete" then
-            table.remove(cells, #cells)
-        else
-            local lastCell = cells[#cells]
-            local noRight = dir == 1 and lastCell % size == 11
-            local noLeft = dir == -1 and lastCell % size == 0
-            local noUp = lastCell + dir < 0
-            local noDown = lastCell + dir > math.pow(size, 2) - 1
-
-            -- Moving point shouldn't go beyond game bounds. Assumes square bounds
-            if noRight or noLeft or noUp or noDown then return end
-
-            table.insert(cells, lastCell + dir)
-        end
-        db.components.points[self.line] = self.grid:lineToVertices(cells)
-    end
+function Orchestrator:onKeyPressed(key)
+    self.sysPlayer:moveActivePoint(key, self.sysGrid)
 end
 
 function Orchestrator:getBoxBounds(width, height)

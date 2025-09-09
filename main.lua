@@ -10,6 +10,7 @@ function loadModules()
     orchestratorClass = require("src.orchestrator")
     rendererClass = require("src.renderer")
     inputSystemClass = require("src.sys.inputSystem")
+    playerSystemClass = require("src.sys.playerSystem")
 end
 
 function love.load()
@@ -18,8 +19,8 @@ function love.load()
     
     -- Instantiate systems
     renderer = Renderer()
-    orchestrator = Orchestrator()
     sysInput = InputSystem()
+    orchestrator = Orchestrator()
 end
 
 function love.draw()

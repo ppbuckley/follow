@@ -87,17 +87,17 @@ function UISystem:createToggle(name, bounds, defaultValue)
     return toggle
 end
 
-function UISystem:clear(orch)
-    for name, id in pairs(orch.input) do
+function UISystem:clear()
+    for name, id in pairs(sysInput.vars) do
         db:destroyEntity(id)
     end
 end
 
-function UISystem:add(uiComponent, name, orch, defaultValue)
+function UISystem:add(uiComponent, name, defaultValue)
     local bounds = self:getNextBounds()
     local component = uiComponent(string.gsub(name, ' ', '_'), bounds, defaultValue)
 
-    orch.input[string.gsub(name, ' ', '_')] = component
+    sysInput.vars[string.gsub(name, ' ', '_')] = component
 
 end
 
