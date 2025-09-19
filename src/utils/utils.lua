@@ -177,7 +177,7 @@ end
 function utils.hslToRgb(color)
     h, s, l = unpack(color)
     if s == 0 then
-        return l, l, l
+        return {l, l, l}
     end
     
     local function hue2rgb(p, q, t)
@@ -931,6 +931,39 @@ function add(tbl, constant)
 end
 
 table.add = add
+
+function utils.splitBounds(bounds, split)
+    local xSplit, ySplit = split.x or nil, split.y or nil
+    if (not xSplit and not ySplit) or (xSplit and ySplit) then error("Can only split bounds in one orientation") end
+
+    local first = {}
+    local second = {}
+    if xSplit then
+        local split = bounds.x1 + (bounds.x2 - bounds.x1) * utils.clamp(xSplit, 0, 1)
+        first.x1 = bounds.x1
+        first.y1 = bounds.y1
+        first.x2 = split
+        first.y2 = bounds.y2
+        
+        second.x1 = split
+        second.y1 = bounds.y1
+        second.x2 = bounds.x2
+        second.y2 = bounds.y2
+    elseif ySplit then
+        local split = bounds.y1 + (bounds.y2 - bounds.y1) * utils.clamp(ySplit, 0, 1)
+        first.x1 = bounds.x1
+        first.y1 = bounds.y1
+        first.x2 = bounds.x2
+        first.y2 = split
+        
+        second.x1 = bounds.x1
+        second.y1 = split
+        second.x2 = bounds.x2
+        second.y2 = bounds.y2
+    end
+    
+    return first, second
+end
 
 return utils
 

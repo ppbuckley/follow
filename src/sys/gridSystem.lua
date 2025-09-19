@@ -7,8 +7,45 @@ cellCallbacks = {
     f = function() return false end
 }
 
-function GridSystem:new(size)
-    local gameBounds = db.components.bounds[db:get('display', 'gameBounds', 0)]
+function GridSystem:new()
+    local size = db:get('game', 'gridSize', 6)
+    local cells = {}
+
+    local defaultCellCheck = "t"
+
+    for i, cell in ipairs(table.arange(math.pow(size, 2))) do
+        cells[cell] = db:createEntity({
+            cellNum = cell,
+            coord = {},
+            clickBounds = {},
+            clickHandler = function ()
+                return nil
+            end,
+            statusHandler = function ()
+                return nil
+            end
+        })
+    end
+
+    self.id = db:createEntity({
+        cells = cells,
+        size = size
+    })
+    
+    self:updateCells()
+end
+
+function GridSystem:updateCells()
+    local size = db:get('game', 'gridSize', 6)
+    local cells = self:getUpdatedCells(size)
+    -- db.components.cells[self.id] = cells
+    db.components.size[self.id] = size
+
+    db:updateQueries(self.id)
+end
+
+function GridSystem:getUpdatedCells(size)
+    local gameBounds = db.components.bounds[db:get('display', 'gameBounds')]
 
     local cellWidth = (gameBounds.x2 - gameBounds.x1) / size
     local cellHeight = (gameBounds.y2 - gameBounds.y1) / size
@@ -17,32 +54,25 @@ function GridSystem:new(size)
 
     local defaultCellCheck = "t"
 
-    for i, cell in ipairs(table.arange(math.pow(size, 2))) do
+    for cell, cellNum in pairs(db.components.cells[self.id]) do
         local coord = self:getCoord(cell, size)
         local x, y = unpack(coord)
 
         local cellCheck = defaultCellCheck
 
-        cells[cell] = db:createEntity({
-            cellNum = cell,
-            coord = coord,
-            clickBounds = {
-                x1 = x * cellWidth + gameBounds.x1,
-                y1 = y * cellHeight + gameBounds.y1,
-                x2 = x * cellWidth + gameBounds.x1 + cellWidth,
-                y2 = y * cellHeight + gameBounds.y1 + cellHeight,
-            },
-            clickHandler = function ()
-                return cell
-            end,
-            statusHandler = self:getStatusHandler(cellCheck)
-        })
+        db.components.cellNum[cellNum] = cell
+        db.components.coord[cellNum] = coord
+        db.components.clickBounds[cellNum] = {
+            x1 = x * cellWidth + gameBounds.x1,
+            y1 = y * cellHeight + gameBounds.y1,
+            x2 = x * cellWidth + gameBounds.x1 + cellWidth,
+            y2 = y * cellHeight + gameBounds.y1 + cellHeight,
+        }
+        db.components.clickHandler[cellNum] = function () return cell end
+        db.components.statusHandler[cellNum] = self:getStatusHandler(cellCheck)
     end
 
-    self.id = db:createEntity({
-        cells = cells,
-        size = size
-    })
+    return cells
 end
 
 function GridSystem:getStatusHandler(cellCheck)
@@ -72,48 +102,4 @@ end
 function GridSystem:getCell(coord, size)
     local x, y = unpack(coord)
     return y * size + x
-end
-
-function GridSystem:lineToVertices(cells)
-    local size = db.components.size[self.id]
-    local deltas = {}
-    deltas[1] = true
-    deltas[-1] = true
-    deltas[size] = true
-    deltas[-size] = true
-    
-    local delta
-    local points = {}
-    for i = 1, #cells - 1 do
-        if (cells[i + 1] - cells[i]) ~= delta then
-            local segStart = cells[i]
-            table.insert(points, segStart)
-        end
-        delta = cells[i + 1] - cells[i]
-        if not deltas[delta] then error("bad line") end
-    end
-
-    table.insert(points, cells[#cells])
-
-    return points
-end
-
-function GridSystem:cellsToBounds(cells)
-    local size = db.components.size[self.id]
-
-    local minX, minY, maxX, maxY = size, size, 0, 0
-    for i, cell in pairs(cells) do
-        local x, y = unpack(self:getCoord(cell, size))
-        if x < minX then minX = x end
-        if y < minY then minY = y end
-        if x > maxX then maxX = x end
-        if y > maxY then maxY = y end
-    end
-
-    return {
-        x1 = minX,
-        y1 = minY,
-        x2 = maxX,
-        y2 = maxY
-    }
 end

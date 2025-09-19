@@ -1,6 +1,6 @@
 Object = require("src.utils.classic")
 windowSystemClass = require("src.sys.windowSystem")
-eventSystemClass = require("src.sys.eventsystem")
+eventSystemClass = require("src.sys.eventSystem")
 gridSystemClass = require("src.sys.gridSystem")
 UISystemClass = require("src.sys.uiSystem")
 
@@ -14,12 +14,14 @@ function Orchestrator:setup()
     self.ui = UISystem()
     self.sysEvents = EventSystem()
     
+    db:set('display', 'gameBounds', db:createEntity({bounds = {}}))
     self:registerQueries()
     self:updateSettings()
-    self:connectHandlers()
     
-    self.sysGrid = GridSystem(db:get('game', 'gridSize', 6))
+    self.sysGrid = GridSystem()
     self.sysPlayer = PlayerSystem(self.sysGrid)
+
+    self:connectHandlers()
 end
 
 function Orchestrator:registerQueries()
@@ -42,6 +44,7 @@ function Orchestrator:updateSettings()
 
     -- Other updates
     self:updateLayout(width, height)
+    if self.sysGrid then self.sysGrid:updateCells() end
     self:updateDebugTool()
     
     -- Update fontSize
@@ -64,18 +67,16 @@ function Orchestrator:updateDebugTool()
     self.ui:add(UISystem.Toggle, "Show Panels", 0)
     self.ui:add(UISystem.Toggle, "Show Coords", 0)
     self.ui:add(UISystem.Toggle, "Show Cell IDs", 0)
-    self.ui:add(UISystem.Toggle, "Show Line Bounds", 0)
 end
 
 function Orchestrator:updateGameWindow(width, height, gameSize) 
-    db:set('display', 'gameBounds', db:createEntity({
-        bounds = {
-            x1 = (width - gameSize) * 0.5,
-            y1 = (height - gameSize) * 0.5,
-            x2 = (width + gameSize) * 0.5,
-            y2 = (height + gameSize) * 0.5
-        }
-    }))
+    local gameBounds = {
+        x1 = (width - gameSize) * 0.5,
+        y1 = (height - gameSize) * 0.5,
+        x2 = (width + gameSize) * 0.5,
+        y2 = (height + gameSize) * 0.5
+    }
+    db.components.bounds[db:get('display', 'gameBounds')] = gameBounds
 end
 
 function Orchestrator:updatePanels(panelsBounds) 
@@ -98,14 +99,12 @@ end
 
 function Orchestrator:connectHandlers() 
     self.sysEvents.onWindowResize:connect(self.sysEvents.bind(db, db.updateDisplay))
+    self.sysEvents.onWindowResize:connect(self.sysEvents.bind(self.ui, self.ui.resize))
     self.sysEvents.onWindowResize:connect(self.sysEvents.bind(self, self.updateSettings))
-    self.sysEvents.onMousePressed:connect(self.sysEvents.bind(self, self.doThing))
     self.sysEvents.onKeyPressed:connect(self.sysEvents.bind(self, self.onKeyPressed))
-    -- self.sysEvents.onMouseReleased:connect(self.sysEvents.bind(self, self.doThing))
 end
 
 function Orchestrator:onKeyPressed(key)
-    self.sysPlayer:moveActivePoint(key, self.sysGrid)
 end
 
 function Orchestrator:getBoxBounds(width, height)

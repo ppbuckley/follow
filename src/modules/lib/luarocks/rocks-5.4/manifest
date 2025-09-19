@@ -1,0 +1,25 @@
+commands = {}
+dependencies = {
+   bitser = {
+      ["1.2-0"] = {}
+   }
+}
+modules = {
+   bitser = {
+      "bitser/1.2-0"
+   }
+}
+repository = {
+   bitser = {
+      ["1.2-0"] = {
+         {
+            arch = "installed",
+            commands = {},
+            dependencies = {},
+            modules = {
+               bitser = "bitser.lua"
+            }
+         }
+      }
+   }
+}

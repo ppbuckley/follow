@@ -1,8 +1,18 @@
+print(love.filesystem.getSaveDirectory())
+-- In main.lua or before you need the module
+
 function loadModules()
+    -- Add your custom paths to Love2D's require path
+    local requirePath = love.filesystem.getRequirePath()
+    requirePath = requirePath .. ";src/modules/share/lua/5.4/?.lua"
+    requirePath = requirePath .. ";src/modules/share/lua/5.4/?/init.lua"
+    love.filesystem.setRequirePath(requirePath)
+
     -- Load utility modules
     flux = require("src.utils.flux")
     utils = require("src.utils.utils")
     lume = require("src.utils.lume")
+    bitser = require("bitser")
     
     -- Load managers
     databaseClass = require("src.database")
@@ -11,6 +21,7 @@ function loadModules()
     rendererClass = require("src.renderer")
     inputSystemClass = require("src.sys.inputSystem")
     playerSystemClass = require("src.sys.playerSystem")
+    designSystemClass = require("src.sys.designSystem")
 end
 
 function love.load()

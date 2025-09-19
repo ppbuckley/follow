@@ -1,0 +1,12 @@
+rock_manifest = {
+   ["bitser-1.2-0.rockspec"] = "640436218b830e415d8bd2b62abcf77d",
+   doc = {
+      ["EXTENSION_API.md"] = "47dae9c046a277638cd0f1e9513f8b43",
+      ["LICENSE.txt"] = "e54ac5dacc7dc54078321796f74b5f0c",
+      ["README.md"] = "3b8e7e298699ef570d5f501b4671bf18",
+      ["USAGE.md"] = "c8a5f68a66d6416822df2459074d2dcb"
+   },
+   lua = {
+      ["bitser.lua"] = "2fab6864e64e32de801a50420d0d0b72"
+   }
+}

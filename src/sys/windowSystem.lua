@@ -54,34 +54,28 @@ function Portrait:getBoxLength(width, height)
 end
 
 function Portrait:getPanelsBounds(width, height)
-    local ratio = height/width
-    local gameSize = height - db:get('settings', 'border', 250) * math.pow(ratio, 3)
-
-    -- x1 = (width - gameSize) * 0.5,
-    -- y1 = (height - gameSize) * 0.5,
-    -- x2 = (width + gameSize) * 0.5,
-    -- y2 = (height + gameSize) * 0.5
+    local gameSize = Portrait:getBoxLength(width, height)
 
     local panels = {
-        firstPrimary = {
+        firstSecondary = {
             x1 = 0,
             y1 = 0,
             x2 = (width - gameSize) * 0.5,
             y2 = height
         },
-        secondPrimary = {
+        secondSecondary = {
             x1 = (width + gameSize) * 0.5,
             y1 = 0,
             x2 = width,
             y2 = height
         },
-        firstSecondary = {
+        firstPrimary = {
             x1 = (width - gameSize) * 0.5,
             y1 = 0,
             x2 = (width + gameSize) * 0.5,
             y2 = (height - gameSize) * 0.5
         },
-        secondSecondary = {
+        secondPrimary = {
             x1 = (width - gameSize) * 0.5,
             y1 = (height + gameSize) * 0.5,
             x2 = (width + gameSize) * 0.5,
@@ -107,8 +101,7 @@ function Landscape:getBoxLength(width, height)
 end
 
 function Landscape:getPanelsBounds(width, height)
-    local ratio = height/width
-    local gameSize = height - db:get('settings', 'border', 250) * math.pow(ratio, 3)
+    local gameSize = Landscape:getBoxLength(width, height)
 
     local panels = {
         firstPrimary = {

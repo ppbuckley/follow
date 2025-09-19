@@ -25,11 +25,6 @@ function InputSystem:keyPressed(key, skip)
     if love.keyboard.isDown("lgui") and key == "`" then
         orchestrator.ui:toggleDebugTool()
     end
-
-    if key == "space" then
-        local id = orchestrator.sysPlayer.line
-        orchestrator.sysPlayer:shiftCells(id, 1)
-    end
     
     orchestrator.sysEvents.onKeyPressed:emit(key)
 end
@@ -60,26 +55,31 @@ function InputSystem:mousePressed(x, y, button, istouch)
 
     for clickable in pairs(clickables) do
         if utils.pointInsideBox({x = x, y = y}, db.components.clickBounds[clickable]) then
-            if orchestrator.ui.enabled then
+            if orchestrator.ui.layers.debug.enabled then
                 if db.components.uiComponent[clickable] == "slider" then
                     self.state.mouseDown[clickable] = true
                 elseif db.components.uiComponent[clickable] == "toggle" then
                     db.components.clickHandler[clickable](love.mouse.getPosition())
                 end
             end
-            
         end
     end
     
-    local cells = db.queries.cells
+    -- local cells = db.queries.cells
     
-    for cell in pairs(cells) do
-        if utils.pointInsideBox({x = x, y = y}, db.components.clickBounds[cell]) then
-            local cellCheck = "t"
-            if button == 1 then cellCheck = "f" end
-            db.components.statusHandler[cell] = orchestrator.sysGrid:getStatusHandler(cellCheck)
-        end
-    end
+    -- local value = db.components.t[sysInput.vars.Level_Editor]
+    -- for cell in pairs(cells) do
+    --     if utils.pointInsideBox({x = x, y = y}, db.components.clickBounds[cell]) then
+    --         if value == 1 then 
+    --             local cellCheck = "t"
+    --             if button == 1 then cellCheck = "f" end
+    --             db.components.statusHandler[cell] = orchestrator.sysGrid:getStatusHandler(cellCheck)
+    --             orchestrator.sysPlayer:updateLine()
+    --         else
+    --             orchestrator.sysPlayer:guessSolution(cell)
+    --         end
+    --     end
+    -- end
 end
 
 function InputSystem:mouseReleased()
